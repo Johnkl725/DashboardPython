@@ -173,6 +173,7 @@ def predict_acceso_route():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Usar el puerto proporcionado por Render o 5000 por defecto.
-    app.run(port=port)
+    # Usa la variable de entorno 'PORT' para el puerto o 5000 por defecto
+    port = int(os.environ.get("PORT", 5000))  
+    app.run(host="0.0.0.0", port=port)
 
