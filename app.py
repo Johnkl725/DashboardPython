@@ -1,3 +1,5 @@
+import eventlet
+eventlet.monkey_patch()
 from flask import Flask, jsonify, render_template, request
 from sqlalchemy import create_engine
 import pandas as pd
