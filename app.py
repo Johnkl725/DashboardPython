@@ -3,9 +3,10 @@ from sqlalchemy import create_engine
 import pandas as pd
 from models.prediccion_model import predecir_acceso
 from statsmodels.tsa.seasonal import STL  # Asegúrate de importar STL
+from flask_cors import CORS  
 import os
 app = Flask(__name__)
-
+CORS(app)
 # Cadena de conexión a PostgreSQL con SQLAlchemy
 DATABASE_URL = "postgresql://dbsecurity_user:27PdSd9U8rvelKWnSmhR0MrN20M1uAsq@dpg-cuv3f2a3esus73bl48d0-a.oregon-postgres.render.com/dbsecurity?sslmode=require"
 
