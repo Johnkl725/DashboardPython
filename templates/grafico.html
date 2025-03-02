@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accesos en Tiempo Real</title>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>  <!-- Agrega el CDN de Socket.IO -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -80,50 +81,66 @@
     </div>
 
     <script>
+        const socket = io('https://dashboardpython-thot.onrender.com');  // Conexión con el servidor Socket.IO
+
+        socket.on('update_graph', function(data) {
+            console.log("Datos actualizados: ", data);  // Muestra los datos actualizados
+
+            // Actualiza las gráficas
+            updateGraph(data);
+        });
+
+        function updateGraph(data) {
+            let fechas = data.map(d => d.fecha_hora);
+            let permitidos = data.map(d => d.permitidos);
+            let denegados = data.map(d => d.denegados);
+
+            // Gráfico de la serie original
+            let trace1 = {
+                x: fechas,
+                y: permitidos,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Accesos Permitidos',
+                line: { color: 'blue' }
+            };
+
+            let trace2 = {
+                x: fechas,
+                y: denegados,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Accesos Denegados',
+                line: { color: 'red' }
+            };
+
+            let layout = {
+                title: 'Accesos Permitidos y Denegados',
+                xaxis: { title: 'Fecha y Hora', type: 'category' },
+                yaxis: { title: 'Número de Accesos' }
+            };
+
+            Plotly.newPlot('grafico', [trace1, trace2], layout);
+        }
+
+        // Función para obtener los datos iniciales
         function fetchSerieTemporal() {
-            fetch('/api/data')  // Usamos la ruta /api/data que devuelve la serie original
+            fetch('/api/data')  
                 .then(response => response.json())
                 .then(data => {
-                    console.log(data);  // Verificamos los datos que recibimos
+                    console.log(data);  
 
                     if (!Array.isArray(data)) {
                         console.error("Error: La API no devolvió un array.");
                         return;
                     }
 
-                    let fechas = data.map(d => d.fecha_hora);
-                    let permitidos = data.map(d => d.permitidos);
-                    let denegados = data.map(d => d.denegados);
-
-                    // Gráfica de la serie original
-                    let trace1 = {
-                        x: fechas,
-                        y: permitidos,
-                        type: 'scatter',
-                        mode: 'lines+markers',
-                        name: 'Accesos Permitidos',
-                        line: { color: 'blue' }
-                    };
-
-                    let trace2 = {
-                        x: fechas,
-                        y: denegados,
-                        type: 'scatter',
-                        mode: 'lines+markers',
-                        name: 'Accesos Denegados',
-                        line: { color: 'red' }
-                    };
-
-                    let layout = {
-                        title: 'Accesos Permitidos y Denegados',
-                        xaxis: { title: 'Fecha y Hora', type: 'category' },
-                        yaxis: { title: 'Número de Accesos' }
-                    };
-
-                    Plotly.newPlot('grafico', [trace1, trace2], layout);
+                    updateGraph(data);
                 })
                 .catch(error => console.error('Error al obtener los datos del gráfico:', error));
         }
+
+        // Función para obtener los totales de accesos
         function fetchTotalAccesos() {
             fetch("/api/total_accesos")
                 .then(response => response.json())
@@ -138,8 +155,9 @@
                 .catch(error => console.error("Error al obtener los datos:", error));
         }
 
+        // Función para obtener el gráfico de la serie temporal
         function fetchGraficoData() {
-            fetch('/api/series_temporales')  // Cambié la URL a /api/series_temporales
+            fetch('/api/series_temporales') 
                 .then(response => response.json())
                 .then(data => {
                     if (data.tendencia && data.estacionalidad && data.residuo) {
@@ -201,39 +219,11 @@
                     }
                 })
                 .catch(error => console.error("Error al obtener los datos de la serie temporal:", error));
-            }
-
-        function fetchDiasRegistrados() {
-            fetch("/api/dias_registrados")
-                .then(response => response.json())
-                .then(data => {
-                    if (data.dias_transcurridos !== undefined) {
-                        document.getElementById("dias-count").textContent = data.dias_transcurridos + " días";
-                    } else {
-                        console.error("Error: Datos inválidos recibidos:", data);
-                    }
-                })
-                .catch(error => console.error("Error al obtener los días registrados:", error));
         }
-        document.getElementById('predecir_btn').addEventListener('click', function() {
-            var hora = document.getElementById('hora_input').value;
-            if (hora !== "") {
-                fetch(`/api/predict_acceso?hora=${hora}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.prediccion !== undefined) {
-                            document.getElementById('prediccion_result').textContent = `Predicción: ${data.prediccion} accesos permitidos a las ${hora}:00`;
-                        } else {
-                            console.error('Error en la predicción', data);
-                        }
-                    })
-                    .catch(error => console.error('Error al obtener la predicción:', error));
-            }
-        });
+
         fetchGraficoData();
         fetchTotalAccesos();
-        fetchSerieTemporal()
-        fetchDiasRegistrados();
+        fetchSerieTemporal();
     </script>
 </body>
 </html>
