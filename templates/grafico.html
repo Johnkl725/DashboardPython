@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accesos en Tiempo Real</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .card {
+            width: 200px;
+            padding: 2px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            font-size: 18px;
+        }
+        .prediccion-container {
+            margin-top: 20px;
+        }
+        .permitidos { background-color: #4CAF50; color: white; }
+        .denegados { background-color: #F44336; color: white; }
+        .dias { background-color: #2196F3; color: white; }
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-top: 20px;
+            width: 90%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+    <h2>Accesos en Tiempo Real</h2>
+    <div class="container">
+        <div class="card permitidos">
+            <h3>Permitidos</h3>
+            <p id="permitidos-count">Cargando...</p>
+        </div>
+
+        <div class="card denegados">
+            <h3>Denegados</h3>
+            <p id="denegados-count">Cargando...</p>
+        </div>
+        
+        <div class="card dias">
+            <h2>Días Registrados</h2>
+            <p id="dias-count">Cargando...</p>
+        </div>
+    </div>
+
+    <div class="prediccion-container">
+        <h3>Predicción de Accesos</h3>
+        <label for="hora_input">Ingrese la hora (0-23): </label>
+        <input type="number" id="hora_input" min="0" max="23" step="1">
+        <button id="predecir_btn">Predecir Accesos</button>
+        <p id="prediccion_result">Esperando predicción...</p>
+    </div>
+
+    <div class="charts-container">
+        <div id="grafico"></div>
+        <div id="grafico-tendencia"></div>
+        <div id="grafico-estacionalidad"></div>
+        <div id="grafico-residuo"></div>
+    </div>
+
+    <script>
+        function fetchSerieTemporal() {
+            fetch('/api/data')  // Usamos la ruta /api/data que devuelve la serie original
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);  // Verificamos los datos que recibimos
+
+                    if (!Array.isArray(data)) {
+                        console.error("Error: La API no devolvió un array.");
+                        return;
+                    }
+
+                    let fechas = data.map(d => d.fecha_hora);
+                    let permitidos = data.map(d => d.permitidos);
+                    let denegados = data.map(d => d.denegados);
+
+                    // Gráfica de la serie original
+                    let trace1 = {
+                        x: fechas,
+                        y: permitidos,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: 'Accesos Permitidos',
+                        line: { color: 'blue' }
+                    };
+
+                    let trace2 = {
+                        x: fechas,
+                        y: denegados,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: 'Accesos Denegados',
+                        line: { color: 'red' }
+                    };
+
+                    let layout = {
+                        title: 'Accesos Permitidos y Denegados',
+                        xaxis: { title: 'Fecha y Hora', type: 'category' },
+                        yaxis: { title: 'Número de Accesos' }
+                    };
+
+                    Plotly.newPlot('grafico', [trace1, trace2], layout);
+                })
+                .catch(error => console.error('Error al obtener los datos del gráfico:', error));
+        }
+        function fetchTotalAccesos() {
+            fetch("/api/total_accesos")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.total_permitidos !== undefined && data.total_denegados !== undefined) {
+                        document.getElementById("permitidos-count").textContent = data.total_permitidos;
+                        document.getElementById("denegados-count").textContent = data.total_denegados;
+                    } else {
+                        console.error("Datos inválidos recibidos:", data);
+                    }
+                })
+                .catch(error => console.error("Error al obtener los datos:", error));
+        }
+
+        function fetchGraficoData() {
+            fetch('/api/series_temporales')  // Cambié la URL a /api/series_temporales
+                .then(response => response.json())
+                .then(data => {
+                    if (data.tendencia && data.estacionalidad && data.residuo) {
+                        let fechas = data.tendencia.map(d => d.fecha);
+                        let tendencia = data.tendencia.map(d => d.valor);
+                        let estacionalidad = data.estacionalidad.map(d => d.valor);
+                        let residuo = data.residuo.map(d => d.valor);
+
+                        let traceTendencia = {
+                            x: fechas,
+                            y: tendencia,
+                            type: 'scatter',
+                            mode: 'lines',
+                            name: 'Tendencia',
+                            line: { color: 'orange' }
+                        };
+
+                        let traceEstacionalidad = {
+                            x: fechas,
+                            y: estacionalidad,
+                            type: 'scatter',
+                            mode: 'lines',
+                            name: 'Estacionalidad',
+                            line: { color: 'green' }
+                        };
+
+                        let traceResiduo = {
+                            x: fechas,
+                            y: residuo,
+                            type: 'scatter',
+                            mode: 'lines',
+                            name: 'Residuo',
+                            line: { color: 'purple' }
+                        };
+
+                        let layoutTendencia = {
+                            title: 'Tendencia de Accesos Permitidos',
+                            xaxis: { title: 'Fecha' },
+                            yaxis: { title: 'Valor' }
+                        };
+
+                        let layoutEstacionalidad = {
+                            title: 'Estacionalidad de Accesos Permitidos',
+                            xaxis: { title: 'Fecha' },
+                            yaxis: { title: 'Valor' }
+                        };
+
+                        let layoutResiduo = {
+                            title: 'Residuo de Accesos Permitidos',
+                            xaxis: { title: 'Fecha' },
+                            yaxis: { title: 'Valor' }
+                        };
+
+                        Plotly.newPlot('grafico-tendencia', [traceTendencia], layoutTendencia);
+                        Plotly.newPlot('grafico-estacionalidad', [traceEstacionalidad], layoutEstacionalidad);
+                        Plotly.newPlot('grafico-residuo', [traceResiduo], layoutResiduo);
+                    } else {
+                        console.error("Error: Datos inválidos recibidos.", data);
+                    }
+                })
+                .catch(error => console.error("Error al obtener los datos de la serie temporal:", error));
+            }
+
+        function fetchDiasRegistrados() {
+            fetch("/api/dias_registrados")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.dias_transcurridos !== undefined) {
+                        document.getElementById("dias-count").textContent = data.dias_transcurridos + " días";
+                    } else {
+                        console.error("Error: Datos inválidos recibidos:", data);
+                    }
+                })
+                .catch(error => console.error("Error al obtener los días registrados:", error));
+        }
+        document.getElementById('predecir_btn').addEventListener('click', function() {
+            var hora = document.getElementById('hora_input').value;
+            if (hora !== "") {
+                fetch(`/api/predict_acceso?hora=${hora}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.prediccion !== undefined) {
+                            document.getElementById('prediccion_result').textContent = `Predicción: ${data.prediccion} accesos permitidos a las ${hora}:00`;
+                        } else {
+                            console.error('Error en la predicción', data);
+                        }
+                    })
+                    .catch(error => console.error('Error al obtener la predicción:', error));
+            }
+        });
+        fetchGraficoData();
+        fetchTotalAccesos();
+        fetchSerieTemporal()
+        fetchDiasRegistrados();
+    </script>
+</body>
+</html>
