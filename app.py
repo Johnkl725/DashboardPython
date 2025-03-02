@@ -10,8 +10,12 @@ from flask_socketio import SocketIO, emit  # Importa SocketIO y emit
 import os
 
 app = Flask(__name__)
-CORS(app)
-socketio = SocketIO(app)  # Inicializa SocketIO
+
+# Configura CORS para la aplicación completa, incluidos los WebSockets
+CORS(app, resources={r"/socket.io/*": {"origins": "*"}})
+
+# Configura SocketIO para permitir conexiones CORS
+socketio = SocketIO(app, cors_allowed_origins="*")  # Esto permite CORS en los WebSockets
 
 # Cadena de conexión a PostgreSQL con SQLAlchemy
 DATABASE_URL = "postgresql://dbsecurity_user:27PdSd9U8rvelKWnSmhR0MrN20M1uAsq@dpg-cuv3f2a3esus73bl48d0-a.oregon-postgres.render.com/dbsecurity?sslmode=require"
