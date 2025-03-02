@@ -136,4 +136,5 @@ def send_data():
     socketio.emit('update_graph', df_grouped.to_dict(orient="records"))
 
 if __name__ == "__main__":
-    socketio.run(app, host='0.0.0.0', port=5000)  # Usa SocketIO para correr el servidor
+    # Solo ejecuta SocketIO cuando se ejecuta en un entorno de desarrollo o cuando es necesario
+    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
