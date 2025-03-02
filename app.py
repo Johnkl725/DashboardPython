@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 import pandas as pd
 from models.prediccion_model import predecir_acceso
 from statsmodels.tsa.seasonal import STL  # Asegúrate de importar STL
-
+import os
 app = Flask(__name__)
 
 # Cadena de conexión a PostgreSQL con SQLAlchemy
@@ -173,4 +173,6 @@ def predict_acceso_route():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))  # Usar el puerto proporcionado por Render o 5000 por defecto.
+    app.run(port=port)
+
